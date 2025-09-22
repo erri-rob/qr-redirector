@@ -1,0 +1,10 @@
+name = "qr-redirector-counter"
+main = "src/index.ts"
+compatibility_date = "2024-10-01"
+
+[[kv_namespaces]]
+binding = "SCANS_KV"
+id = ""
+preview_id = ""
+
+

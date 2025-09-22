@@ -47,16 +47,18 @@
     </div>
 
     <script>
-      const COUNT_NAMESPACE = 'qr-redirector';
-      const COUNT_KEY = 'scansioni-pagina';
+      // Backend personalizzato (Cloudflare Worker): imposta qui l'URL base dopo il deploy
+      const WORKER_BASE = localStorage.getItem('qr_worker_base') || '';
 
       async function fetchLiveTotal() {
         try {
-          const path = `/get/${encodeURIComponent(COUNT_NAMESPACE)}/${encodeURIComponent(COUNT_KEY)}`;
-          const endpoints = [
-            `https://api.countapi.xyz${path}`,
-            `https://api.countapi.dev${path}`
-          ];
+          const endpoints = WORKER_BASE
+            ? [`${WORKER_BASE.replace(/\/$/, '')}/get`]
+            : [
+                // fallback CountAPI se non è configurato il Worker
+                `https://api.countapi.xyz/get/qr-redirector/scansioni-pagina`,
+                `https://api.countapi.dev/get/qr-redirector/scansioni-pagina`
+              ];
           let data = null;
           for (const url of endpoints) {
             try {

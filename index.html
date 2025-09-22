@@ -13,11 +13,16 @@
 
         // Log scansione (best-effort) con fallback multipli e senza bloccare il redirect
         (function logScan() {
-          var path = "/hit/" + encodeURIComponent(COUNT_NAMESPACE) + "/" + encodeURIComponent(COUNT_KEY);
-          var endpoints = [
-            "https://api.countapi.xyz" + path,
-            "https://api.countapi.dev" + path
-          ];
+          var WORKER_BASE = localStorage.getItem('qr_worker_base') || '';
+          var endpoints = WORKER_BASE
+            ? [WORKER_BASE.replace(/\/$/, '') + '/hit']
+            : (function(){
+                var path = "/hit/" + encodeURIComponent(COUNT_NAMESPACE) + "/" + encodeURIComponent(COUNT_KEY);
+                return [
+                  "https://api.countapi.xyz" + path,
+                  "https://api.countapi.dev" + path
+                ];
+              })();
           var done = false;
           function firePixel(url) {
             try {

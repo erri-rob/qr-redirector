@@ -28,7 +28,7 @@ Installare `qrencode` (macOS: `brew install qrencode`) e poi:
 qrencode -o qr.png "https://<username>.github.io/qr-redirector/"
 ```
 
-## Leggere il contatore corrente
+## Leggere il contatore corrente (fallback CountAPI)
 ```bash
 curl -sSL "https://api.countapi.xyz/get/qr-redirector/scansioni-pagina"
 ```
@@ -36,5 +36,28 @@ curl -sSL "https://api.countapi.xyz/get/qr-redirector/scansioni-pagina"
 ## Note
 - Il redirect funziona anche se CountAPI è irraggiungibile
 - Gli snapshot vengono salvati in `scansioni/log.json`
+
+---
+
+## Opzione backend self‑hosted: Cloudflare Worker + KV (consigliato)
+
+1. Requisiti: `npm` e `wrangler` (`npm i -g wrangler`), account Cloudflare gratuito.
+2. Configura KV:
+   - Crea un namespace KV (es. `SCANS_KV`) su Cloudflare Dashboard
+   - Copia `id` e `preview_id` in `worker/wrangler.toml`
+3. Deploy:
+```bash
+cd worker
+wrangler deploy
+```
+4. Ottieni l’URL del Worker (es. `https://qr-redirector-counter.<subdomain>.workers.dev`).
+5. Imposta l’URL del Worker lato client (persistito in `localStorage`):
+```js
+localStorage.setItem('qr_worker_base', 'https://qr-redirector-counter.<subdomain>.workers.dev')
+```
+- `index.html` userà `/hit` del Worker per contare
+- `stats.html` userà `/get` per il totale live
+
+Se non imposti `qr_worker_base`, rimane il fallback CountAPI.
 
 Licenza: MIT
