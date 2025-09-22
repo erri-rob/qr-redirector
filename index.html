@@ -11,14 +11,29 @@
         var COUNT_NAMESPACE = "qr-redirector"; // Cambia se vuoi isolare i contatori
         var COUNT_KEY = "scansioni-pagina";   // Chiave contatore
 
-        // Log scansione (best-effort). Non blocca il redirect.
-        try {
-          fetch("https://api.countapi.xyz/hit/" + encodeURIComponent(COUNT_NAMESPACE) + "/" + encodeURIComponent(COUNT_KEY), {
-            method: "GET",
-            mode: "no-cors",
-            cache: "no-store",
-          }).catch(function () {});
-        } catch (e) {}
+        // Log scansione (best-effort) con fallback multipli e senza bloccare il redirect
+        (function logScan() {
+          var path = "/hit/" + encodeURIComponent(COUNT_NAMESPACE) + "/" + encodeURIComponent(COUNT_KEY);
+          var endpoints = [
+            "https://api.countapi.xyz" + path,
+            "https://api.countapi.dev" + path
+          ];
+          var done = false;
+          function firePixel(url) {
+            try {
+              var img = new Image();
+              img.src = url + (url.indexOf("?") === -1 ? "?" : "&") + "_=" + Date.now();
+            } catch (e) {}
+          }
+          endpoints.forEach(function (url) {
+            if (done) return;
+            try {
+              fetch(url, { method: "GET", mode: "no-cors", cache: "no-store" })
+                .catch(function () { firePixel(url); })
+                .finally(function () { done = true; });
+            } catch (e) { firePixel(url); done = true; }
+          });
+        })();
 
         // Redirect rapido via JS (fallback anche via meta refresh)
         window.location.replace(TARGET_URL);

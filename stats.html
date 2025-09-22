@@ -52,8 +52,19 @@
 
       async function fetchLiveTotal() {
         try {
-          const res = await fetch(`https://api.countapi.xyz/get/${encodeURIComponent(COUNT_NAMESPACE)}/${encodeURIComponent(COUNT_KEY)}`, { cache: 'no-store' });
-          const data = await res.json();
+          const path = `/get/${encodeURIComponent(COUNT_NAMESPACE)}/${encodeURIComponent(COUNT_KEY)}`;
+          const endpoints = [
+            `https://api.countapi.xyz${path}`,
+            `https://api.countapi.dev${path}`
+          ];
+          let data = null;
+          for (const url of endpoints) {
+            try {
+              const res = await fetch(url, { cache: 'no-store' });
+              if (res.ok) { data = await res.json(); break; }
+            } catch (_) { /* try next */ }
+          }
+          if (!data) throw new Error('unreachable');
           const value = Number(data?.value ?? 0);
           document.getElementById('liveTotal').textContent = value.toLocaleString('it-IT');
           document.getElementById('liveUpdated').textContent = new Date().toLocaleString('it-IT');
@@ -70,12 +81,14 @@
           const res = await fetch('./scansioni/log.json', { cache: 'no-store' });
           const data = await res.json();
           const snapshots = Array.isArray(data?.snapshots) ? data.snapshots : [];
-          if (snapshots.length) {
-            const last = snapshots[snapshots.length - 1];
+          // filtra eventuali placeholder o timestamp non validi
+          const valid = snapshots.filter(p => p && p.timestamp && !String(p.timestamp).includes('${INIT}'));
+          if (valid.length) {
+            const last = valid[valid.length - 1];
             document.getElementById('lastSnapshot').textContent = Number(last.count).toLocaleString('it-IT');
             document.getElementById('lastSnapshotTime').textContent = new Date(last.timestamp).toLocaleString('it-IT');
           }
-          return snapshots;
+          return valid;
         } catch (e) {
           document.getElementById('lastSnapshot').textContent = 'N/D';
           document.getElementById('lastSnapshotTime').textContent = '—';
