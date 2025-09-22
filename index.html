@@ -10,40 +10,103 @@
         var TARGET_URL = "https://www.rainews.it/tgr/piemonte/video/2023/03/tgr-piemonte-web-moricone-satelliti-militari-pl-sicral-centro-interforze-ucraina-1cc6d906-e8ff-4459-b243-82501d24c32f.html";
         var COUNT_NAMESPACE = "qr-redirector"; // Cambia se vuoi isolare i contatori
         var COUNT_KEY = "scansioni-pagina";   // Chiave contatore
+        var MIN_REDIRECT_DELAY_MS = 150;       // attesa minima per dare tempo al logging
+        var MAX_LOG_WAIT_MS = 700;             // attesa massima prima di forzare il redirect
 
-        // Log scansione (best-effort) con fallback multipli e senza bloccare il redirect
-        (function logScan() {
-          var WORKER_BASE = localStorage.getItem('qr_worker_base') || '';
-          var GH_USER = (location.hostname.split('.')[0] || '').toLowerCase();
-          var REPO = 'qr-redirector';
-          var endpoints = WORKER_BASE
-            ? [WORKER_BASE.replace(/\/$/, '') + '/hit']
-            : [
-                // GitHub Release asset URL: downloading incrementa il contatore download
-                'https://github.com/' + GH_USER + '/' + REPO + '/releases/download/qr-counter/pixel.gif',
-                // fallback CountAPI
-                (function(){ var p = "/hit/" + encodeURIComponent(COUNT_NAMESPACE) + "/" + encodeURIComponent(COUNT_KEY); return "https://api.countapi.xyz" + p; })(),
-                (function(){ var p = "/hit/" + encodeURIComponent(COUNT_NAMESPACE) + "/" + encodeURIComponent(COUNT_KEY); return "https://api.countapi.dev" + p; })()
-              ];
-          var done = false;
-          function firePixel(url) {
+        function delay(ms) {
+          return new Promise(function (resolve) {
+            setTimeout(resolve, ms);
+          });
+        }
+
+        function safeLocalStorageGet(key) {
+          try {
+            return window.localStorage.getItem(key);
+          } catch (_) {
+            return null;
+          }
+        }
+
+        function withCacheBuster(url) {
+          return url + (url.indexOf("?") === -1 ? "?" : "&") + "_=" + Date.now();
+        }
+
+        function firePixel(url) {
+          return new Promise(function (resolve) {
             try {
               var img = new Image();
-              img.src = url + (url.indexOf("?") === -1 ? "?" : "&") + "_=" + Date.now();
-            } catch (e) {}
-          }
-          endpoints.forEach(function (url) {
-            if (done) return;
-            try {
-              fetch(url, { method: "GET", mode: "no-cors", cache: "no-store" })
-                .catch(function () { firePixel(url); })
-                .finally(function () { done = true; });
-            } catch (e) { firePixel(url); done = true; }
+              img.onload = img.onerror = function () { resolve(); };
+              img.src = withCacheBuster(url);
+              setTimeout(resolve, 400);
+            } catch (e) {
+              resolve();
+            }
           });
-        })();
+        }
 
-        // Redirect rapido via JS (fallback anche via meta refresh)
-        window.location.replace(TARGET_URL);
+        function fetchHit(url) {
+          if (typeof fetch !== "function") {
+            return Promise.reject(new Error("fetch unavailable"));
+          }
+          try {
+            return fetch(withCacheBuster(url), {
+              method: "GET",
+              mode: "no-cors",
+              cache: "no-store",
+              keepalive: true,
+            });
+          } catch (err) {
+            return Promise.reject(err);
+          }
+        }
+
+        function logScan() {
+          return new Promise(function (resolve) {
+            var resolved = false;
+            function finish() {
+              if (!resolved) {
+                resolved = true;
+                resolve();
+              }
+            }
+
+            var workerBase = (safeLocalStorageGet('qr_worker_base') || '').replace(/\/$/, '');
+            var GH_USER = (location.hostname.split('.')[0] || '').toLowerCase();
+            var REPO = 'qr-redirector';
+
+            var endpoints = workerBase
+              ? [workerBase + '/hit']
+              : [
+                  'https://github.com/' + GH_USER + '/' + REPO + '/releases/download/qr-counter/pixel.gif',
+                  'https://api.countapi.xyz/hit/' + encodeURIComponent(COUNT_NAMESPACE) + '/' + encodeURIComponent(COUNT_KEY),
+                  'https://api.countapi.dev/hit/' + encodeURIComponent(COUNT_NAMESPACE) + '/' + encodeURIComponent(COUNT_KEY)
+                ];
+
+            if (!endpoints.length) {
+              finish();
+              return;
+            }
+
+            endpoints.forEach(function (url) {
+              fetchHit(url)
+                .catch(function () {
+                  return firePixel(url);
+                })
+                .finally(finish);
+            });
+
+            setTimeout(finish, MAX_LOG_WAIT_MS);
+          });
+        }
+
+        Promise.all([
+          Promise.race([logScan(), delay(MAX_LOG_WAIT_MS)]),
+          delay(MIN_REDIRECT_DELAY_MS)
+        ])
+          .catch(function () { /* noop */ })
+          .finally(function () {
+            window.location.replace(TARGET_URL);
+          });
       })();
     </script>
     <style>
@@ -60,5 +123,3 @@
     </div>
   </body>
   </html>
-
-
