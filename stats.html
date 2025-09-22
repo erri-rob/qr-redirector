@@ -47,23 +47,33 @@
     </div>
 
     <script>
-      // Backend personalizzato (Cloudflare Worker): imposta qui l'URL base dopo il deploy
+      // Backend personalizzato (Cloudflare Worker) opzionale
       const WORKER_BASE = localStorage.getItem('qr_worker_base') || '';
+      const GH_USER = (location.hostname.split('.')[0] || '').toLowerCase();
+      const REPO = 'qr-redirector';
 
       async function fetchLiveTotal() {
         try {
           const endpoints = WORKER_BASE
             ? [`${WORKER_BASE.replace(/\/$/, '')}/get`]
             : [
-                // fallback CountAPI se non è configurato il Worker
-                `https://api.countapi.xyz/get/qr-redirector/scansioni-pagina`,
-                `https://api.countapi.dev/get/qr-redirector/scansioni-pagina`
+                // Legge dai download dell'asset del release (via API GitHub)
+                `https://api.github.com/repos/${GH_USER}/${REPO}/releases/tags/qr-counter`
               ];
           let data = null;
           for (const url of endpoints) {
             try {
               const res = await fetch(url, { cache: 'no-store' });
-              if (res.ok) { data = await res.json(); break; }
+              if (!res.ok) continue;
+              const body = await res.json();
+              if (WORKER_BASE) {
+                data = body;
+              } else {
+                // somma download_count degli asset
+                const total = (body.assets || []).reduce((s, a) => s + (a.download_count || 0), 0);
+                data = { value: total };
+              }
+              break;
             } catch (_) { /* try next */ }
           }
           if (!data) throw new Error('unreachable');

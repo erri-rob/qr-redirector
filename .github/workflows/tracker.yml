@@ -22,15 +22,19 @@ jobs:
             sudo apt-get install -y jq
           fi
 
-      - name: Read current count from CountAPI
+      - name: Read download count from GitHub Release asset
         id: count
         shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          NAMESPACE="qr-redirector"
-          KEY="scansioni-pagina"
-          # get current value (no increment)
-          RESP=$(curl -sSL "https://api.countapi.xyz/get/${NAMESPACE}/${KEY}")
-          VAL=$(echo "$RESP" | jq -r '.value // 0')
+          OWNER="${GITHUB_REPOSITORY%%/*}"
+          REPO="${GITHUB_REPOSITORY##*/}"
+          TAG="qr-counter"
+          RESP=$(curl -sSL -H "Authorization: Bearer ${GITHUB_TOKEN}" -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${OWNER}/${REPO}/releases/tags/${TAG}")
+          # sum download_count of all assets
+          VAL=$(echo "$RESP" | jq '[.assets[]?.download_count] | add // 0')
           echo "value=$VAL" >> $GITHUB_OUTPUT
 
       - name: Append snapshot to scansioni/log.json

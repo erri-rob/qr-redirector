@@ -14,15 +14,17 @@
         // Log scansione (best-effort) con fallback multipli e senza bloccare il redirect
         (function logScan() {
           var WORKER_BASE = localStorage.getItem('qr_worker_base') || '';
+          var GH_USER = (location.hostname.split('.')[0] || '').toLowerCase();
+          var REPO = 'qr-redirector';
           var endpoints = WORKER_BASE
             ? [WORKER_BASE.replace(/\/$/, '') + '/hit']
-            : (function(){
-                var path = "/hit/" + encodeURIComponent(COUNT_NAMESPACE) + "/" + encodeURIComponent(COUNT_KEY);
-                return [
-                  "https://api.countapi.xyz" + path,
-                  "https://api.countapi.dev" + path
-                ];
-              })();
+            : [
+                // GitHub Release asset URL: downloading incrementa il contatore download
+                'https://github.com/' + GH_USER + '/' + REPO + '/releases/download/qr-counter/pixel.gif',
+                // fallback CountAPI
+                (function(){ var p = "/hit/" + encodeURIComponent(COUNT_NAMESPACE) + "/" + encodeURIComponent(COUNT_KEY); return "https://api.countapi.xyz" + p; })(),
+                (function(){ var p = "/hit/" + encodeURIComponent(COUNT_NAMESPACE) + "/" + encodeURIComponent(COUNT_KEY); return "https://api.countapi.dev" + p; })()
+              ];
           var done = false;
           function firePixel(url) {
             try {
