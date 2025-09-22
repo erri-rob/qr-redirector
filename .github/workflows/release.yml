@@ -13,6 +13,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Create pixel.gif (1x1 transparent)
+        run: |
+          mkdir -p assets
+          echo 'R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==' | base64 -d > assets/pixel.gif
+          ls -l assets/pixel.gif
+
       - name: Create release and upload pixel asset
         uses: softprops/action-gh-release@v2
         with:
