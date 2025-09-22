@@ -31,10 +31,7 @@ jobs:
           if [ -z "$ID" ] || [ "$ID" = "null" ]; then
             # Create
             CREATE=$(curl -sSL -X POST -H "Authorization: Bearer ${GITHUB_TOKEN}" -H "Accept: application/vnd.github+json" \
-              "$API" -d @- <<JSON
-{ "tag_name": "${TAG}", "name": "${NAME}", "draft": false, "prerelease": false }
-JSON
-            )
+              "$API" -d "{\"tag_name\":\"${TAG}\",\"name\":\"${NAME}\",\"draft\":false,\"prerelease\":false}")
             ID=$(echo "$CREATE" | jq -r '.id')
           fi
           echo "id=$ID" >> $GITHUB_OUTPUT
