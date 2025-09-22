@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="it">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Statistiche QR</title>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" integrity="sha384-3JrYtKcS7nA1U1+7V4vE4+J2J3oEw6yH9k4lIUVs1p5a7g2t5qXv6dQ4Q8+gqj6F" crossorigin="anonymous"></script>
+    <style>
+      :root { color-scheme: dark; }
+      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 2rem; background: #0f172a; color: #e2e8f0; }
+      .container { max-width: 920px; margin: 0 auto; }
+      .card { background: #111827; padding: 1.25rem 1.5rem; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,.35); margin-bottom: 1rem; }
+      h1, h2 { margin: 0 0 .75rem; }
+      .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; }
+      .metric { font-size: 2.25rem; font-weight: 700; }
+      a { color: #93c5fd; }
+      canvas { background: #0b1220; border-radius: 8px; }
+      .muted { opacity: .75; font-size: .9rem; }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="card">
+        <h1>Statistiche QR</h1>
+        <p class="muted">Totale scansioni live via CountAPI e storico giornaliero da GitHub Actions.</p>
+        <p class="muted">Pagina QR: <a href="./" rel="nofollow">/qr-redirector/</a></p>
+      </div>
+
+      <div class="grid">
+        <div class="card">
+          <h2>Totale live</h2>
+          <div id="liveTotal" class="metric">—</div>
+          <div class="muted" id="liveUpdated">Aggiornamento…</div>
+        </div>
+        <div class="card">
+          <h2>Ultimo snapshot</h2>
+          <div id="lastSnapshot" class="metric">—</div>
+          <div class="muted" id="lastSnapshotTime">—</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Storico scansioni</h2>
+        <canvas id="historyChart" height="120"></canvas>
+      </div>
+    </div>
+
+    <script>
+      const COUNT_NAMESPACE = 'qr-redirector';
+      const COUNT_KEY = 'scansioni-pagina';
+
+      async function fetchLiveTotal() {
+        try {
+          const res = await fetch(`https://api.countapi.xyz/get/${encodeURIComponent(COUNT_NAMESPACE)}/${encodeURIComponent(COUNT_KEY)}`, { cache: 'no-store' });
+          const data = await res.json();
+          const value = Number(data?.value ?? 0);
+          document.getElementById('liveTotal').textContent = value.toLocaleString('it-IT');
+          document.getElementById('liveUpdated').textContent = new Date().toLocaleString('it-IT');
+          return value;
+        } catch (e) {
+          document.getElementById('liveTotal').textContent = 'N/D';
+          document.getElementById('liveUpdated').textContent = 'Errore nel recupero';
+          return null;
+        }
+      }
+
+      async function fetchSnapshots() {
+        try {
+          const res = await fetch('./scansioni/log.json', { cache: 'no-store' });
+          const data = await res.json();
+          const snapshots = Array.isArray(data?.snapshots) ? data.snapshots : [];
+          if (snapshots.length) {
+            const last = snapshots[snapshots.length - 1];
+            document.getElementById('lastSnapshot').textContent = Number(last.count).toLocaleString('it-IT');
+            document.getElementById('lastSnapshotTime').textContent = new Date(last.timestamp).toLocaleString('it-IT');
+          }
+          return snapshots;
+        } catch (e) {
+          document.getElementById('lastSnapshot').textContent = 'N/D';
+          document.getElementById('lastSnapshotTime').textContent = '—';
+          return [];
+        }
+      }
+
+      function renderChart(points) {
+        const ctx = document.getElementById('historyChart');
+        const labels = points.map(p => new Date(p.timestamp).toLocaleDateString('it-IT'));
+        const data = points.map(p => Number(p.count));
+        new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels,
+            datasets: [{
+              label: 'Scansioni (totale cumulativo)',
+              data,
+              borderColor: '#60a5fa',
+              backgroundColor: 'rgba(96,165,250,0.15)',
+              tension: 0.25,
+              fill: true,
+            }]
+          },
+          options: {
+            maintainAspectRatio: false,
+            scales: {
+              x: { grid: { color: 'rgba(255,255,255,0.06)' } },
+              y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.06)' } }
+            },
+            plugins: {
+              legend: { display: false },
+              tooltip: { mode: 'index', intersect: false }
+            },
+            interaction: { mode: 'index', intersect: false }
+          }
+        });
+      }
+
+      (async function init() {
+        await fetchLiveTotal();
+        const snapshots = await fetchSnapshots();
+        renderChart(snapshots);
+      })();
+    </script>
+  </body>
+  </html>
+
+
