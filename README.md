@@ -1,51 +1,78 @@
 # QR Redirector
 
-Pagina di atterraggio minimale per QR code: reindirizza l’utente verso un URL a scelta e registra ogni hit per conoscere quante scansioni sono state fatte. Funziona interamente con servizi gratuiti.
+Minimal landing page for QR codes. It redirects visitors to any URL you choose while logging each scan so you always know how many times the code has been used. Everything runs on free services by default.
 
-## Come funziona
+---
 
-- **`index.html`** effettua un redirect immediato a `TARGET_URL` e, prima di lasciare la pagina, invia una richiesta di conteggio a CountAPI (con fallback su countapi.dev e, in ultima istanza, su un asset GitHub Release). Se si imposta un backend personale Cloudflare Worker, viene usato al posto di CountAPI.
-- **`stats.html`** mostra il totale live leggendo le API di CountAPI (o il Worker) e utilizza `scansioni/log.json` come storico giornaliero.
-- **`.github/workflows/`** contiene workflow opzionali: uno per creare l’asset `pixel.gif` su un release e uno per salvare uno snapshot giornaliero del contatore.
+## ✨ Features
 
-## Setup per il proprio link
+- **Drop-in redirect** – update one constant in `index.html` and you’re ready to deploy.
+- **Free analytics** – CountAPI keeps a running tally without accounts or server costs.
+- **Nice-looking dashboard** – `stats.html` shows live totals and historical snapshots.
+- **Cloudflare Worker ready** – optional backend for higher reliability and custom domains.
+- **Works on GitHub Pages** – static hosting only; no special build pipeline required.
 
-1. **Fork/Clona il repo.**
-2. **Imposta l’URL di destinazione.** Apri `index.html` e modifica `TARGET_URL` (righe iniziali dello script).
-   - Facoltativo: cambia `COUNT_NAMESPACE`/`COUNT_KEY` per avere un contatore dedicato.
-3. **Attiva GitHub Pages.**
-   - Repository → Settings → Pages → “Deploy from a branch” → `main` / root.
-   - L’URL risultante sarà `https://<username>.github.io/qr-redirector/` (o il nome del tuo repo).
-4. **Genera il QR.**
+---
+
+## 🗺️ Project Structure
+
+| Path | Purpose |
+| --- | --- |
+| `index.html` | Redirect page + scan logger (CountAPI or Worker).
+| `stats.html` | Dashboard that reads CountAPI / Worker totals plus stored snapshots.
+| `scansioni/log.json` | Daily snapshot history appended by the GitHub Action.
+| `.github/workflows/` | Optional workflows for snapshotting and publishing the tracking pixel.
+| `worker/` | Cloudflare Worker (Typescript) that replaces CountAPI if you want your own backend.
+
+---
+
+## 🚀 Quick Start (GitHub Pages + CountAPI)
+
+1. **Fork or clone this repository.**
+2. **Set the redirect target.** In `index.html`, change the `TARGET_URL` constant at the top of the script. Optionally customize `COUNT_NAMESPACE` / `COUNT_KEY` to get your own CountAPI bucket.
+3. **Enable GitHub Pages.** Go to *Settings → Pages → Deploy from a branch* and choose `main` / root. Your public URL becomes `https://<username>.github.io/qr-redirector/` (or the repo name).
+4. **Generate the QR code.**
    ```bash
-   # macOS: brew install qrencode
+   # macOS example – install qrencode once
+   brew install qrencode
    qrencode -o qr.png "https://<username>.github.io/qr-redirector/"
    ```
-5. **Controlla le statistiche.** Apri `https://<username>.github.io/qr-redirector/stats.html` per vedere il totale live e, se abiliti il workflow, lo storico giornaliero.
+5. **Share & monitor.** Point scanners to the new link. Visit `https://<username>.github.io/qr-redirector/stats.html` to see live totals.
 
-## Opzione backend consigliata (Cloudflare Worker + KV)
+CountAPI keeps a global counter per namespace/key pair. If you ever want to start fresh, just change the values in `index.html`.
 
-CountAPI è gratuito ma soggetto a throttling. Per un contatore più affidabile, deploya il Worker incluso:
+---
 
-1. Prerequisiti: account Cloudflare gratuito, `npm`, `wrangler` (`npm i -g wrangler`).
-2. Crea un namespace KV e copia `id` e `preview_id` in `worker/wrangler.toml`.
-3. Deploy dal repo:
+## ⚙️ Optional: Self-Hosted Counter (Cloudflare Worker)
+
+CountAPI is great for quick projects, but rate limits may appear on heavy traffic. Deploy the Worker to keep everything under your control.
+
+1. Requirements: free Cloudflare account, `npm`, `wrangler` (`npm i -g wrangler`).
+2. In the Cloudflare dashboard, create a KV namespace (e.g. `SCANS_KV`) and copy its `id` / `preview_id` into `worker/wrangler.toml`.
+3. Deploy:
    ```bash
    cd worker
    wrangler deploy
    ```
-4. Recupera l’URL del Worker (es. `https://qr-redirector-counter.<subdomain>.workers.dev`).
-5. Salvalo nel browser che usa il QR (o nel file JS se preferisci) con:
+4. Note the worker URL, for example `https://qr-redirector-counter.<subdomain>.workers.dev`.
+5. Inform the frontend (one-time per device or hard-coded):
    ```js
    localStorage.setItem('qr_worker_base', 'https://qr-redirector-counter.<subdomain>.workers.dev');
    ```
 
-Da quel momento la pagina userà `/hit` e `/get` del Worker per registrare e leggere le scansioni.
+The redirect page now hits `/hit` on your Worker and the dashboard reads `/get`, so traffic never touches CountAPI.
 
-## Consigli aggiuntivi
+---
 
-- **Dominio personalizzato:** GitHub Pages supporta un file `CNAME`; se possiedi un dominio, il QR mostrerà la tua URL personalizzata.
-- **Reset contatore:** CountAPI non permette azzeramento; usa una nuova coppia namespace/key oppure passa al Worker.
-- **Debug locale:** apri `index.html` in un browser; la console mostrerà eventuali errori di rete verso CountAPI/Worker.
+## 🎯 Tips & Customizations
 
-Licenza MIT.
+- **Custom domain** – add a `CNAME` file and configure DNS to serve the page from your own hostname, so scanners see `https://qr.yourdomain.com` instead of GitHub Pages.
+- **Resetting the counter** – with CountAPI you must pick a new namespace/key; with the Worker you can reset the KV value manually.
+- **Local debugging** – open `index.html` directly in a browser and check the DevTools console to verify the logging requests succeed.
+- **Accessibility** – update the text inside the landing card to explain where the redirect goes if someone’s browser blocks the automatic redirect.
+
+---
+
+## 📄 License
+
+MIT — feel free to use this template for your own QR campaigns and tweak it to your needs.
