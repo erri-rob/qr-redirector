@@ -1,0 +1,13 @@
+{
+  "source": "countapi.xyz",
+  "namespace": "qr-redirector",
+  "key": "scansioni-pagina",
+  "snapshots": [
+    {
+      "timestamp": "${INIT}",
+      "count": 0
+    }
+  ]
+}
+
+

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="it">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Redirecting…</title>
+    <meta http-equiv="refresh" content="5; url=https://www.rainews.it/tgr/piemonte/video/2023/03/tgr-piemonte-web-moricone-satelliti-militari-pl-sicral-centro-interforze-ucraina-1cc6d906-e8ff-4459-b243-82501d24c32f.html" />
+    <script>
+      (function () {
+        var TARGET_URL = "https://www.rainews.it/tgr/piemonte/video/2023/03/tgr-piemonte-web-moricone-satelliti-militari-pl-sicral-centro-interforze-ucraina-1cc6d906-e8ff-4459-b243-82501d24c32f.html";
+        var COUNT_NAMESPACE = "qr-redirector"; // Cambia se vuoi isolare i contatori
+        var COUNT_KEY = "scansioni-pagina";   // Chiave contatore
+
+        // Log scansione (best-effort). Non blocca il redirect.
+        try {
+          fetch("https://api.countapi.xyz/hit/" + encodeURIComponent(COUNT_NAMESPACE) + "/" + encodeURIComponent(COUNT_KEY), {
+            method: "GET",
+            mode: "no-cors",
+            cache: "no-store",
+          }).catch(function () {});
+        } catch (e) {}
+
+        // Redirect rapido via JS (fallback anche via meta refresh)
+        window.location.replace(TARGET_URL);
+      })();
+    </script>
+    <style>
+      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 2rem; display: flex; min-height: 100vh; align-items: center; justify-content: center; background: #0f172a; color: #e2e8f0; }
+      .card { background: #111827; padding: 1.5rem 2rem; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,.35); max-width: 720px; text-align: center; }
+      a { color: #93c5fd; }
+      .small { opacity: .75; font-size: .9rem; }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h1>Reindirizzamento in corso…</h1>
+      <p class="small">Se non vieni reindirizzato automaticamente, <a href="https://www.rainews.it/tgr/piemonte/video/2023/03/tgr-piemonte-web-moricone-satelliti-militari-pl-sicral-centro-interforze-ucraina-1cc6d906-e8ff-4459-b243-82501d24c32f.html">clicca qui</a>.</p>
+    </div>
+  </body>
+  </html>
+
+

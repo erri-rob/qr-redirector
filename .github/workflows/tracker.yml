@@ -1,0 +1,55 @@
+name: Snapshot QR scans
+
+on:
+  schedule:
+    - cron: "0 0 * * *" # ogni giorno a mezzanotte UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Ensure jq is installed
+        run: |
+          if ! command -v jq >/dev/null 2>&1; then
+            sudo apt-get update -y
+            sudo apt-get install -y jq
+          fi
+
+      - name: Read current count from CountAPI
+        id: count
+        shell: bash
+        run: |
+          NAMESPACE="qr-redirector"
+          KEY="scansioni-pagina"
+          # get current value (no increment)
+          RESP=$(curl -sSL "https://api.countapi.xyz/get/${NAMESPACE}/${KEY}")
+          VAL=$(echo "$RESP" | jq -r '.value // 0')
+          echo "value=$VAL" >> $GITHUB_OUTPUT
+
+      - name: Append snapshot to scansioni/log.json
+        shell: bash
+        run: |
+          ts=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          file="scansioni/log.json"
+          tmp="scansioni/log.tmp.json"
+          jq \
+            --arg ts "$ts" \
+            --argjson val "${{ steps.count.outputs.value }}" \
+            '.snapshots += [{"timestamp": $ts, "count": $val}]' \
+            "$file" > "$tmp"
+          mv "$tmp" "$file"
+
+      - name: Commit and push
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore: snapshot scans count"
+          file_pattern: scansioni/log.json
+
+
