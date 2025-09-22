@@ -51,13 +51,18 @@
       const WORKER_BASE = localStorage.getItem('qr_worker_base') || '';
       const GH_USER = (location.hostname.split('.')[0] || '').toLowerCase();
       const REPO = 'qr-redirector';
+      const COUNT_NAMESPACE = 'qr-redirector';
+      const COUNT_KEY = 'scansioni-pagina';
 
       async function fetchLiveTotal() {
         try {
           const endpoints = WORKER_BASE
             ? [`${WORKER_BASE.replace(/\/$/, '')}/get`]
             : [
-                // Legge dai download dell'asset del release (via API GitHub)
+                // Primario: CountAPI
+                `https://api.countapi.xyz/get/${encodeURIComponent(COUNT_NAMESPACE)}/${encodeURIComponent(COUNT_KEY)}`,
+                `https://api.countapi.dev/get/${encodeURIComponent(COUNT_NAMESPACE)}/${encodeURIComponent(COUNT_KEY)}`,
+                // Fallback: somma dei download del release (può aggiornarsi in ritardo)
                 `https://api.github.com/repos/${GH_USER}/${REPO}/releases/tags/qr-counter`
               ];
           let data = null;
@@ -68,10 +73,14 @@
               const body = await res.json();
               if (WORKER_BASE) {
                 data = body;
-              } else {
+              } else if (url.includes('api.github.com')) {
                 // somma download_count degli asset
                 const total = (body.assets || []).reduce((s, a) => s + (a.download_count || 0), 0);
                 data = { value: total };
+              } else {
+                // CountAPI: { value }
+                const v = Number(body?.value ?? body?.count ?? 0);
+                data = { value: v };
               }
               break;
             } catch (_) { /* try next */ }
@@ -148,5 +157,4 @@
     </script>
   </body>
   </html>
-
 

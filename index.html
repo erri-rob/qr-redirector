@@ -77,9 +77,11 @@
             var endpoints = workerBase
               ? [workerBase + '/hit']
               : [
-                  'https://github.com/' + GH_USER + '/' + REPO + '/releases/download/qr-counter/pixel.gif',
+                  // Usa CountAPI come fonte primaria
                   'https://api.countapi.xyz/hit/' + encodeURIComponent(COUNT_NAMESPACE) + '/' + encodeURIComponent(COUNT_KEY),
-                  'https://api.countapi.dev/hit/' + encodeURIComponent(COUNT_NAMESPACE) + '/' + encodeURIComponent(COUNT_KEY)
+                  'https://api.countapi.dev/hit/' + encodeURIComponent(COUNT_NAMESPACE) + '/' + encodeURIComponent(COUNT_KEY),
+                  // Fallback: download asset del release (può avere ritardi d'aggiornamento)
+                  'https://github.com/' + GH_USER + '/' + REPO + '/releases/download/qr-counter/pixel.gif'
                 ];
 
             if (!endpoints.length) {
