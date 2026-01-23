@@ -1,127 +1,156 @@
 <!DOCTYPE html>
 <html lang="it">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Redirecting…</title>
-    <meta http-equiv="refresh" content="5; url=https://www.rainews.it/tgr/piemonte/video/2023/03/tgr-piemonte-web-moricone-satelliti-militari-pl-sicral-centro-interforze-ucraina-1cc6d906-e8ff-4459-b243-82501d24c32f.html" />
-    <script>
-      (function () {
-        var TARGET_URL = "https://www.rainews.it/tgr/piemonte/video/2023/03/tgr-piemonte-web-moricone-satelliti-militari-pl-sicral-centro-interforze-ucraina-1cc6d906-e8ff-4459-b243-82501d24c32f.html";
-        var COUNT_NAMESPACE = "qr-redirector"; // Cambia se vuoi isolare i contatori
-        var COUNT_KEY = "scansioni-pagina";   // Chiave contatore
-        var MIN_REDIRECT_DELAY_MS = 150;       // attesa minima per dare tempo al logging
-        var MAX_LOG_WAIT_MS = 700;             // attesa massima prima di forzare il redirect
 
-        function delay(ms) {
-          return new Promise(function (resolve) {
-            setTimeout(resolve, ms);
-          });
-        }
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Scegli una destinazione</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      background: linear-gradient(180deg, #000000 0%, #000000 150px, #0f172a 50%, #1e3a8a 100%);
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow-x: hidden;
+    }
 
-        function safeLocalStorageGet(key) {
-          try {
-            return window.localStorage.getItem(key);
-          } catch (_) {
-            return null;
-          }
-        }
+    .header-logos {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      right: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      pointer-events: none;
+      z-index: 10;
+    }
 
-        function withCacheBuster(url) {
-          return url + (url.indexOf("?") === -1 ? "?" : "&") + "_=" + Date.now();
-        }
+    .header-logos img {
+      height: auto;
+      max-height: 80px;
+      max-width: 120px;
+      object-fit: contain;
+      pointer-events: auto;
+      filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.3));
+    }
 
-        function firePixel(url) {
-          return new Promise(function (resolve) {
-            try {
-              var img = new Image();
-              img.onload = img.onerror = function () { resolve(); };
-              img.src = withCacheBuster(url);
-              setTimeout(resolve, 400);
-            } catch (e) {
-              resolve();
-            }
-          });
-        }
+    .container {
+      width: 90%;
+      max-width: 600px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      z-index: 1;
+      padding: 100px 0 40px;
+      /* Top padding for logos on small screens */
+    }
 
-        function fetchHit(url) {
-          if (typeof fetch !== "function") {
-            return Promise.reject(new Error("fetch unavailable"));
-          }
-          try {
-            return fetch(withCacheBuster(url), {
-              method: "GET",
-              mode: "no-cors",
-              cache: "no-store",
-              keepalive: true,
-            });
-          } catch (err) {
-            return Promise.reject(err);
-          }
-        }
+    .link-card {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 24px;
+      border-radius: 16px;
+      text-decoration: none;
+      color: white;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
 
-        function logScan() {
-          return new Promise(function (resolve) {
-            var resolved = false;
-            function finish() {
-              if (!resolved) {
-                resolved = true;
-                resolve();
-              }
-            }
+    .link-card:hover {
+      transform: translateY(-4px);
+      background: rgba(255, 255, 255, 0.15);
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.1);
+      border-color: rgba(255, 255, 255, 0.3);
+    }
 
-            var workerBase = (safeLocalStorageGet('qr_worker_base') || '').replace(/\/$/, '');
-            var GH_USER = (location.hostname.split('.')[0] || '').toLowerCase();
-            var REPO = 'qr-redirector';
+    .link-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: 8px;
+      display: block;
+      line-height: 1.4;
+      color: #f1f5f9;
+    }
 
-            var endpoints = workerBase
-              ? [workerBase + '/hit']
-              : [
-                  // Usa CountAPI come fonte primaria
-                  'https://api.countapi.xyz/hit/' + encodeURIComponent(COUNT_NAMESPACE) + '/' + encodeURIComponent(COUNT_KEY),
-                  'https://api.countapi.dev/hit/' + encodeURIComponent(COUNT_NAMESPACE) + '/' + encodeURIComponent(COUNT_KEY),
-                  // Fallback: download asset del release (può avere ritardi d'aggiornamento)
-                  'https://github.com/' + GH_USER + '/' + REPO + '/releases/download/qr-counter/pixel.gif'
-                ];
+    .link-url {
+      font-size: 0.875rem;
+      color: #93c5fd;
+      word-break: break-all;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
 
-            if (!endpoints.length) {
-              finish();
-              return;
-            }
+    .link-url::before {
+      content: '';
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      background-color: currentColor;
+      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71'/%3E%3Cpath d='M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71'/%3E%3C/svg%3E");
+      -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71'/%3E%3Cpath d='M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71'/%3E%3C/svg%3E");
+      mask-size: contain;
+      -webkit-mask-size: contain;
+      mask-repeat: no-repeat;
+      -webkit-mask-repeat: no-repeat;
+    }
 
-            endpoints.forEach(function (url) {
-              fetchHit(url)
-                .catch(function () {
-                  return firePixel(url);
-                })
-                .finally(finish);
-            });
+    /* Responsive adjustments */
+    @media (max-width: 480px) {
+      .header-logos {
+        top: 16px;
+        left: 16px;
+        right: 16px;
+      }
 
-            setTimeout(finish, MAX_LOG_WAIT_MS);
-          });
-        }
+      .header-logos img {
+        max-height: 60px;
+        max-width: 100px;
+      }
 
-        Promise.all([
-          Promise.race([logScan(), delay(MAX_LOG_WAIT_MS)]),
-          delay(MIN_REDIRECT_DELAY_MS)
-        ])
-          .catch(function () { /* noop */ })
-          .finally(function () {
-            window.location.replace(TARGET_URL);
-          });
-      })();
-    </script>
-    <style>
-      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 2rem; display: flex; min-height: 100vh; align-items: center; justify-content: center; background: #0f172a; color: #e2e8f0; }
-      .card { background: #111827; padding: 1.5rem 2rem; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,.35); max-width: 720px; text-align: center; }
-      a { color: #93c5fd; }
-      .small { opacity: .75; font-size: .9rem; }
-    </style>
-  </head>
-  <body>
-    <div class="card">
-      <h1>Reindirizzamento in corso…</h1>
-      <p class="small">Se non vieni reindirizzato automaticamente, <a href="https://www.rainews.it/tgr/piemonte/video/2023/03/tgr-piemonte-web-moricone-satelliti-militari-pl-sicral-centro-interforze-ucraina-1cc6d906-e8ff-4459-b243-82501d24c32f.html">clicca qui</a>.</p>
-    </div>
-  </body>
-  </html>
+      .link-title {
+        font-size: 1.1rem;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="header-logos">
+    <!-- Logo Sinistro -->
+    <img src="assets/logoprincipale.jpeg" alt="Logo Principale">
+
+    <!-- Logo Destro -->
+    <img src="assets/logo25.jpeg" alt="Logo 25° Anniversario">
+  </div>
+
+  <div class="container">
+    <!-- Link 1 -->
+    <a href="https://www.rainews.it/tgr/piemonte/video/2023/03/tgr-piemonte-web-moricone-satelliti-militari-pl-sicral-centro-interforze-ucraina-1cc6d906-e8ff-4459-b243-82501d24c32f.html"
+      class="link-card" target="_blank" rel="noopener noreferrer">
+      <span class="link-title">Satelliti militari SICRAL. Di cosa si tratta?</span>
+      <span class="link-url">rainews.it</span>
+    </a>
+
+    <!-- Link 2 -->
+    <a href="https://www.difesa.it/smd/news-italia/vigna-di-valle-25-anniversario-centro-interforze-gestione-e-controllo-sicral/87353.html"
+      class="link-card" target="_blank" rel="noopener noreferrer">
+      <span class="link-title">25° Anniversario Centro Interforze Gestione e Controllo SICRAL</span>
+      <span class="link-url">difesa.it</span>
+    </a>
+  </div>
+</body>
+
+</html>
